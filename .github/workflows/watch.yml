@@ -1,5 +1,7 @@
 name: Watch releases
 
+# Every 5 minutes is GitHub's shortest schedule; in practice runs can land
+# a few minutes late.
 on:
   schedule:
     - cron: '*/5 * * * *'
