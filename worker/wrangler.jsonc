@@ -1,0 +1,14 @@
+{
+  "name": "btso-watch",
+  "main": "index.js",
+  "compatibility_date": "2026-09-01",
+  // No public URL: the Worker only runs on its cron triggers.
+  "workers_dev": false,
+  "triggers": {
+    "crons": ["*/5 * * * *", "17 */6 * * *"]
+  },
+  "kv_namespaces": [
+    { "binding": "STATE", "id": "3901dc002d864b58b5ec43dcba65aaaa" }
+  ],
+  "observability": { "enabled": true }
+}

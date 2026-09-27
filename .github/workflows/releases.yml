@@ -1,19 +1,13 @@
-name: Watch releases
+name: Check releases (manual)
 
-# Every 5 minutes is GitHub's shortest schedule; in practice runs can land
-# a few minutes late.
+# The regular check runs as a Cloudflare Worker on a 5-minute cron (see
+# worker/), because GitHub never registered this workflow's schedule. This
+# stays as a manual way to run the same check from GitHub.
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
-  actions: write
-
-concurrency:
-  group: watch
-  cancel-in-progress: false
 
 jobs:
   watch:
@@ -39,10 +33,3 @@ jobs:
           git add state.json
           git commit -m "Refresh btso.dev for ${{ steps.check.outputs.dispatched }}"
           git push
-
-      # GitHub pauses schedules in public repos after 60 days without activity.
-      # Re-enabling the workflow through the API resets that clock.
-      - name: Keep the schedule alive
-        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/watch.yml/enable"
-        env:
-          GH_TOKEN: ${{ github.token }}
