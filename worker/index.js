@@ -57,7 +57,7 @@ async function check(env) {
   const { missing, repos } = await missingReleases(env);
   if (!missing.length) {
     console.log(`Up to date: ${repos} repos.`);
-    return;
+    return `up to date (${repos} repos)`;
   }
   // Ask at most once an hour for the same missing releases, so a failing site
   // refresh can't turn into a loop of private-repo runs.
@@ -65,19 +65,26 @@ async function check(env) {
   const last = await env.STATE.get('last', 'json');
   if (last?.signature === signature && Date.now() - Date.parse(last.at) < 3600e3) {
     console.log(`Already asked at ${last.at}: ${signature}`);
-    return;
+    return `already asked for ${signature}`;
   }
   await dispatch(env, { missing });
   await env.STATE.put('last', JSON.stringify({ signature, at: new Date().toISOString() }));
   console.log(`Asked btso.dev to refresh for: ${signature}`);
+  return `asked for a refresh: ${signature}`;
 }
 
 export default {
   async scheduled(event, env, ctx) {
-    if (event.cron === EVERY_SIX_HOURS) {
-      ctx.waitUntil(dispatch(env, { reason: 'schedule' }).then(() => console.log('Scheduled refresh requested.')));
-      return;
-    }
-    ctx.waitUntil(check(env));
+    const job = event.cron === EVERY_SIX_HOURS
+      ? dispatch(env, { reason: 'schedule' }).then(() => 'scheduled refresh requested')
+      : check(env);
+    // The last run's time and outcome, for a quick health check:
+    // wrangler kv key get --binding STATE lastRun --remote
+    ctx.waitUntil(
+      Promise.resolve(job)
+        .then((result) => ({ ok: true, result: result ?? 'checked' }))
+        .catch((e) => ({ ok: false, error: String(e).slice(0, 300) }))
+        .then((outcome) => env.STATE.put('lastRun', JSON.stringify({ at: new Date().toISOString(), cron: event.cron, ...outcome }))),
+    );
   },
 };
