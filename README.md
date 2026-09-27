@@ -16,5 +16,5 @@ registered that schedule, so the workflow is now a manual backup that runs the s
 - `wrangler kv key get --binding STATE lastRun --remote` shows the last run; `health` shows the
   token's expiration date and any repos the token couldn't read.
 - Both need a `SITE_TOKEN`: a fine-grained token with Contents read and write on
-  `btsouth/southforgeai-site`. On Cloudflare it's a Worker secret (`wrangler secret put SITE_TOKEN`),
+  `btsouth/btso.dev`. On Cloudflare it's a Worker secret (`wrangler secret put SITE_TOKEN`),
   on GitHub a repository secret.

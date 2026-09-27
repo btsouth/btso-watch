@@ -4,7 +4,7 @@
 // when something actually shipped.
 import { readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 
-const SITE = 'btsouth/southforgeai-site';
+const SITE = 'btsouth/btso.dev';
 const SNAPSHOT = 'src/data/github.json';
 const siteToken = process.env.SITE_TOKEN;
 const ghToken = process.env.GITHUB_TOKEN;

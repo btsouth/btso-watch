@@ -6,7 +6,7 @@
 // snapshot, ask the site repo to refresh. Every 6 hours: refresh anyway, for
 // stars and the activity calendar.
 
-const SITE = 'btsouth/southforgeai-site';
+const SITE = 'btsouth/btso.dev';
 const SNAPSHOT = 'src/data/github.json';
 const EVERY_SIX_HOURS = '17 */6 * * *';
 
