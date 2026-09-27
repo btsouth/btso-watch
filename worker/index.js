@@ -32,6 +32,9 @@ async function dispatch(env, payload) {
 async function missingReleases(env) {
   const snapRes = await gh(`/repos/${SITE}/contents/${SNAPSHOT}`, env, { headers: { Accept: 'application/vnd.github.raw+json' } });
   if (!snapRes.ok) throw new Error(`Could not read the site snapshot: ${snapRes.status}`);
+  // GitHub reports when the token expires; keep it in the run record so a
+  // renewal doesn't sneak up on anyone.
+  const tokenExpires = snapRes.headers.get('github-authentication-token-expiration');
   const snapshot = await snapRes.json();
   const repos = Object.keys(snapshot.repos);
   const query = `query { ${repos.map((r, i) => {
@@ -42,6 +45,7 @@ async function missingReleases(env) {
   const data = await res.json();
   if (!res.ok || !data.data) throw new Error(`GitHub query failed: ${JSON.stringify(data.errors ?? data)}`);
   // One blocked repo (say, an org token policy) shouldn't stop the others.
+  const skipped = (data.errors ?? []).map((e) => repos[Number(String(e.path?.[0]).slice(1))] ?? '?');
   for (const e of data.errors ?? []) console.log(`Skipped ${repos[Number(String(e.path?.[0]).slice(1))] ?? '?'}: ${e.message}`);
   const missing = [];
   repos.forEach((repo, i) => {
@@ -50,14 +54,16 @@ async function missingReleases(env) {
       .sort((a, b) => (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt))[0];
     if (latest && latest.tagName !== snapshot.repos[repo].latest) missing.push(`${repo}@${latest.tagName}`);
   });
-  return { missing: missing.sort(), repos: repos.length };
+  return { missing: missing.sort(), repos: repos.length, skipped, tokenExpires };
 }
 
 async function check(env) {
-  const { missing, repos } = await missingReleases(env);
+  const { missing, repos, skipped, tokenExpires } = await missingReleases(env);
+  await env.STATE.put('health', JSON.stringify({ tokenExpires, skipped, at: new Date().toISOString() }));
+  const note = skipped.length ? `, skipped ${skipped.join(', ')}` : '';
   if (!missing.length) {
-    console.log(`Up to date: ${repos} repos.`);
-    return `up to date (${repos} repos)`;
+    console.log(`Up to date: ${repos} repos${note}.`);
+    return `up to date (${repos} repos${note})`;
   }
   // Ask at most once an hour for the same missing releases, so a failing site
   // refresh can't turn into a loop of private-repo runs.
