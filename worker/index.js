@@ -40,7 +40,9 @@ async function missingReleases(env) {
   }).join(' ')} }`;
   const res = await gh('/graphql', env, { method: 'POST', body: JSON.stringify({ query }) });
   const data = await res.json();
-  if (!res.ok || data.errors) throw new Error(`GitHub query failed: ${JSON.stringify(data.errors ?? data)}`);
+  if (!res.ok || !data.data) throw new Error(`GitHub query failed: ${JSON.stringify(data.errors ?? data)}`);
+  // One blocked repo (say, an org token policy) shouldn't stop the others.
+  for (const e of data.errors ?? []) console.log(`Skipped ${repos[Number(String(e.path?.[0]).slice(1))] ?? '?'}: ${e.message}`);
   const missing = [];
   repos.forEach((repo, i) => {
     const latest = (data.data[`r${i}`]?.releases.nodes ?? [])
